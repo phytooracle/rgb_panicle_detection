@@ -1,5 +1,5 @@
 GDAL==3.0.4
-numpy==1.24.4
+numpy==1.21.6
 pyproj==3.0.1
 utm==0.7.0
 tifffile==2022.8.12
