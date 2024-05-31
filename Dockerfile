@@ -51,7 +51,9 @@ RUN cd /opt/Python-${PYTHON_VERSION} \
 RUN add-apt-repository ppa:ubuntugis/ubuntugis-unstable
 RUN apt-get update
 RUN apt-get install -y libgdal-dev libproj-dev proj-data proj-bin
-RUN pip3 install --upgrade pip wheel libproj-dev proj-data proj-bin
+RUN apt-get install -y --only-upgrade libgdal-dev libproj-dev proj-data proj-bin
+RUN pip3 install --upgrade pip
+RUN pip3 install --upgrade wheel
 RUN pip3 install cython
 RUN pip3 install --upgrade cython
 RUN pip3 install setuptools==57.5.0
