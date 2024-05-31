@@ -60,7 +60,7 @@ RUN pip3 install --upgrade pip
 RUN pip3 install --upgrade wheel
 RUN pip3 install cython
 RUN pip3 install --upgrade cython
-RUN pip3 install setuptools==57.5.0
+RUN pip3 install setuptools
 RUN pip3 install GDAL==3.0.4
 RUN pip3 install -r /opt/requirements.txt
 
