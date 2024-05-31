@@ -230,7 +230,7 @@ def main():
     if not os.path.isdir(args.outdir):
         os.makedirs(args.outdir)
 
-    img_list = glob.glob(''.join([str(args.dir), os.path.sep, '*.tif']))[:2]
+    img_list = glob.glob(''.join([str(args.dir), os.path.sep, '*.tif']))
     print(img_list)
 
     major_df = [] #pd.DataFrame()
