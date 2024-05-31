@@ -52,6 +52,12 @@ RUN add-apt-repository ppa:ubuntugis/ubuntugis-unstable
 RUN apt-get update
 RUN apt-get install -y libgdal-dev libproj-dev proj-data proj-bin
 RUN apt-get install -y --only-upgrade libgdal-dev libproj-dev proj-data proj-bin
+
+# Upgrade PROJ library
+RUN apt-get install -y software-properties-common
+RUN add-apt-repository ppa:ubuntugis/ppa && apt-get update
+RUN apt-get install -y proj-bin=7.2.0*
+
 RUN pip3 install --upgrade pip
 RUN pip3 install --upgrade wheel
 RUN pip3 install cython
@@ -59,6 +65,7 @@ RUN pip3 install --upgrade cython
 RUN pip3 install setuptools==57.5.0
 RUN pip3 install GDAL==3.0.4
 RUN pip3 install -r /opt/requirements.txt
+
 
 RUN wget http://download.osgeo.org/libspatialindex/spatialindex-src-1.7.1.tar.gz
 RUN tar -xvf spatialindex-src-1.7.1.tar.gz
