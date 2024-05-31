@@ -50,7 +50,7 @@ RUN cd /opt/Python-${PYTHON_VERSION} \
 # Install GDAL
 RUN add-apt-repository ppa:ubuntugis/ubuntugis-unstable
 RUN apt-get update
-RUN apt-get install -y libgdal-dev
+RUN apt-get install -y libgdal-dev libproj-dev proj-data proj-bin
 RUN pip3 install --upgrade pip
 RUN pip3 install --upgrade wheel
 RUN pip3 install cython
