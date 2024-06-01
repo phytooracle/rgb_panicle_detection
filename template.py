@@ -233,17 +233,17 @@ def main():
     img_list = glob.glob(''.join([str(args.dir), os.path.sep, '*.tif']))
     print(img_list)
 
-    major_df = [] #pd.DataFrame()
+    major_df = pd.DataFrame()
 
-    # with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
 
-    #     df = p.map(process_image, img_list)
-    #     major_df = major_df.append(df)
+        df = p.map(process_image, img_list)
+        major_df = major_df.append(df)
 
-    for img in img_list:
+    # for img in img_list:
 
-        temp_df = process_image(img=img)
-        major_df.append(temp_df)
+    #     temp_df = process_image(img=img)
+    #     major_df.append(temp_df)
 
     out_path = os.path.join(args.outdir, f'{args.date}_detection.csv')
     major_df = pd.concat(major_df)
