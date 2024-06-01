@@ -246,7 +246,7 @@ def main():
     #     major_df.append(temp_df)
 
     out_path = os.path.join(args.outdir, f'{args.date}_detection.csv')
-    major_df = pd.concat(major_df)
+    # major_df = pd.concat(major_df)
     major_df.to_csv(out_path)
 
     print(f'Done, see outputs in ./{args.outdir}.')
