@@ -56,10 +56,10 @@ RUN apt-get install -y --only-upgrade libgdal-dev libproj-dev proj-data proj-bin
 RUN apt-get install -y software-properties-common
 RUN add-apt-repository ppa:ubuntugis/ppa && apt-get update
 
-# RUN pip3 install --upgrade pip
-# RUN pip3 install --upgrade wheel
-# RUN pip3 install setuptools==57.5.0
-# RUN pip3 install GDAL==3.0.4
+RUN pip3 install --upgrade pip
+RUN pip3 install --upgrade wheel
+RUN pip3 install setuptools==57.5.0
+RUN pip3 install GDAL==3.0.4
 RUN pip3 install -r /opt/requirements.txt
 
 RUN wget http://download.osgeo.org/libspatialindex/spatialindex-src-1.7.1.tar.gz
