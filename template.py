@@ -8,7 +8,7 @@ Purpose: RGB Panicle Detection
 import argparse
 import os
 import sys
-
+import re
 from multiprocessing import process
 from detecto import core, utils, visualize
 import glob
@@ -84,7 +84,15 @@ def get_args():
                         help='Specify if FLIR or RGB images',
                         default='RGB',
                         choices=['FLIR', 'RGB', 'DRONE'])
-    
+
+    parser.add_argument('-cf',
+                        '--clustering_file',
+                        help='Seasons clustering file',
+                        metavar='str',
+                        type=str,
+                        default=None,
+                        required=True)
+
     return parser.parse_args()
 
 
@@ -223,33 +231,72 @@ def process_image(img):
 
 
 # --------------------------------------------------
+def find_date(string):
+
+    # Regular expression to match the date in YYYY-MM-DD format
+    pattern = r"\d{4}-\d{2}-\d{2}"
+
+    # Find the first match
+    match = re.search(pattern, string)
+
+    # If a match is found, print it
+    if match:
+        date = match.group()
+
+        return date
+
+
+# --------------------------------------------------
 def main():
     """Detect panicles here"""
 
     args = get_args()
+
+    # Create output directory
     if not os.path.isdir(args.outdir):
         os.makedirs(args.outdir)
 
+    # Identify all images to process
     img_list = glob.glob(''.join([str(args.dir), os.path.sep, '*.tif']))
-    print(img_list)
+    
+    # Open RGB plant detection clustering file
+    clustering_csv = pd.read_csv(args.clustering_file)
+    clustering_csv['plot'] = clustering_csv['plot'].astype(str).str.zfill(4)
+    
+    # Find date 
+    date = find_date(string=args.date)
+    
+    # Filter data to include only date being processed
+    clustering_csv = clustering_csv[clustering_csv['date']==date]
 
-    major_df = pd.DataFrame()
+    # major_df = pd.DataFrame()
 
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+    # with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
 
-        df = p.map(process_image, img_list)
-        major_df = major_df.append(df)
+    #     df = p.map(process_image, img_list)
+    #     major_df = major_df.append(df)
 
-    # for img in img_list:
+    for img in img_list[:1]:
+        plot_number = os.path.basename(img).split('_')[0].zfill(4)
+        temp_df = clustering_csv[clustering_csv['plot']==plot_number]
+        temp_df = temp_df[temp_df['plant_name']!='double']
+        
+        for i, row in temp_df.iterrows():
 
+            min_x, min_y, max_x, max_y = row['min_x'], row['min_y'], row['max_x'], row['max_y']
+
+                new_img = tif_img[min_y:max_y, min_x:max_x]
+                new_img = np.array(new_img)
+                copy = new_img.copy()
+                
     #     temp_df = process_image(img=img)
     #     major_df.append(temp_df)
 
-    out_path = os.path.join(args.outdir, f'{args.date}_detection.csv')
-    # major_df = pd.concat(major_df)
-    major_df.to_csv(out_path)
+    # out_path = os.path.join(args.outdir, f'{args.date}_detection.csv')
+    # # major_df = pd.concat(major_df)
+    # major_df.to_csv(out_path)
 
-    print(f'Done, see outputs in ./{args.outdir}.')
+    # print(f'Done, see outputs in ./{args.outdir}.')
 # --------------------------------------------------
 if __name__ == '__main__':
     main()
