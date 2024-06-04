@@ -298,7 +298,7 @@ def main():
     major_df = []
 
     # Iterate through images, detecting panicles on images of individual plants
-    for img in img_list[:1]:
+    for img in img_list:
         plot_number = os.path.basename(img).split('_')[0].zfill(4)
         temp_df = clustering_csv[clustering_csv['plot']==plot_number]
         temp_df = temp_df[temp_df['plant_name']!='double']
