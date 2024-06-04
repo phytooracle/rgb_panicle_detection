@@ -256,19 +256,55 @@ def find_date(string):
 
 # --------------------------------------------------
 def process_row(row, img, clustering_csv):
-    # Get the extents of an individual plant
-    min_x, min_y, max_x, max_y = row['min_x'], row['min_y'], row['max_x'], row['max_y']
+    try:
+        # Get the extents of an individual plant
+        min_x, min_y, max_x, max_y = row['min_x'], row['min_y'], row['max_x'], row['max_y']
 
-    # Get the name of an individual plant
-    plant_name = row['plant_name']
+        # Get the name of an individual plant
+        plant_name = row['plant_name']
 
-    # Process the image of an individual plant
-    temp_df = process_image(img=img, min_x=min_x, min_y=min_y, max_x=max_x, max_y=max_y, plant_name=plant_name)
-    temp_df['panicle_count'] = len(temp_df)
+        # Process the image of an individual plant
+        temp_df = process_image(img=img, min_x=min_x, min_y=min_y, max_x=max_x, max_y=max_y, plant_name=plant_name)
+        temp_df['panicle_count'] = len(temp_df)
+    except:
+        temp_df = pd.DataFrame()
 
     return temp_df
 
 
+# --------------------------------------------------
+# def process_img(img, clustering_csv):
+#     plot_number = os.path.basename(img).split('_')[0].zfill(4)
+#     temp_df = clustering_csv[clustering_csv['plot']==plot_number]
+#     temp_df = temp_df[temp_df['plant_name']!='double']
+
+#     df_list = []
+#     for _, row in temp_df.iterrows():
+
+#         # Process the image of an individual plant
+#         temp_df = process_row(row=row, img=img, clustering_csv=clustering_csv) #, min_x=min_x, min_y=min_y, max_x=max_x, max_y=max_y, plant_name=plant_name)
+
+#         df_list.append(temp_df)
+
+#     return pd.concat(df_list)
+def process_img(img, clustering_csv):
+    plot_number = os.path.basename(img).split('_')[0].zfill(4)
+    temp_df = clustering_csv[clustering_csv['plot']==plot_number]
+    temp_df = temp_df[temp_df['plant_name']!='double']
+
+    df_list = []
+    for _, row in temp_df.iterrows():
+
+        temp_df = process_row(row=row, img=img, clustering_csv=clustering_csv)
+
+        df_list.append(temp_df)
+
+    if df_list:  # Check if df_list is not empty
+        return pd.concat(df_list)
+    else:
+        return pd.DataFrame()  # Return an empty DataFrame if df_list is empty
+
+    
 # --------------------------------------------------
 def main():
     """Detect panicles here"""
@@ -292,27 +328,19 @@ def main():
     # Filter data to include only date being processed
     clustering_csv = clustering_csv[clustering_csv['date']==date]
 
-
-
     # Create empty list to fill during iteration
     major_df = []
 
-    # Iterate through images, detecting panicles on images of individual plants
-    for img in img_list:
-        plot_number = os.path.basename(img).split('_')[0].zfill(4)
-        temp_df = clustering_csv[clustering_csv['plot']==plot_number]
-        temp_df = temp_df[temp_df['plant_name']!='double']
+    # Create a pool of workers
+    with mp.Pool() as pool:
+        # Use a partial function to fix the first argument of process_img (since map only allows for one argument)
+        func = partial(process_img, clustering_csv=clustering_csv)
 
-        # Create a pool of workers
-        with mp.Pool() as pool:
-            # Use a partial function to fix the first argument of process_row (since map only allows for one argument)
-            func = partial(process_row, img=img, clustering_csv=clustering_csv)
+        # Process each image in parallel
+        results = pool.map(func, img_list)
 
-            # Process each row in parallel
-            results = pool.map(func, [row for _, row in temp_df.iterrows()])
-
-        # Save results to the list of dataframes
-        major_df.extend(results)
+    # Save results to the list of dataframes
+    major_df.extend(results)
 
     # Define output filename
     out_path = os.path.join(args.outdir, f'{args.date}_detection.csv')
@@ -322,6 +350,7 @@ def main():
 
     # Save output to file
     major_df.to_csv(out_path)
+
     print(f'Done, see outputs in ./{args.outdir}.')
 
 # --------------------------------------------------
