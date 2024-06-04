@@ -25,6 +25,8 @@ import pandas as pd
 import multiprocessing
 import warnings
 from pyproj import Proj
+import multiprocessing as mp
+from functools import partial
 warnings.filterwarnings("ignore")
 
 
@@ -146,7 +148,7 @@ def open_image(img_path):
 
 
 # --------------------------------------------------
-def process_image(img):
+def process_image(img, min_x, min_y, max_x, max_y, plant_name):
 
     args = get_args()
     cont_cnt = 0
@@ -158,6 +160,12 @@ def process_image(img):
     print(f'Image: {plot_name}')
     genotype = get_genotype(plot_name, args.geojson)
     a_img = open_image(img)
+    
+    # ADDED
+    a_img = a_img[min_y:max_y, min_x:max_x]
+    a_img = np.array(a_img)
+    # copy = new_img.copy()
+
     df = pd.DataFrame()
     # myProj = Proj("+proj=utm +zone=12N, +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
     myProj = Proj("+proj=utm +zone=12 +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
@@ -195,7 +203,7 @@ def process_image(img):
                 'date': args.date,
                 'pred_conf': scores[i].detach().numpy(),
                 'plot': plot,
-                'genotype': genotype,
+                'plant_name': plant_name,
                 'lon': lon,
                 'lat': lat,
                 'min_x': min_x,
@@ -212,7 +220,7 @@ def process_image(img):
         df = pd.DataFrame.from_dict(lett_dict, orient='index', columns=['date',
                                                                     'pred_conf',
                                                                     'plot',
-                                                                    'genotype',
+                                                                    'plant_name',
                                                                     'lon',
                                                                     'lat',
                                                                     'min_x',
@@ -247,6 +255,21 @@ def find_date(string):
 
 
 # --------------------------------------------------
+def process_row(row, img, clustering_csv):
+    # Get the extents of an individual plant
+    min_x, min_y, max_x, max_y = row['min_x'], row['min_y'], row['max_x'], row['max_y']
+
+    # Get the name of an individual plant
+    plant_name = row['plant_name']
+
+    # Process the image of an individual plant
+    temp_df = process_image(img=img, min_x=min_x, min_y=min_y, max_x=max_x, max_y=max_y, plant_name=plant_name)
+    temp_df['panicle_count'] = len(temp_df)
+
+    return temp_df
+
+
+# --------------------------------------------------
 def main():
     """Detect panicles here"""
 
@@ -269,34 +292,38 @@ def main():
     # Filter data to include only date being processed
     clustering_csv = clustering_csv[clustering_csv['date']==date]
 
-    # major_df = pd.DataFrame()
 
-    # with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
 
-    #     df = p.map(process_image, img_list)
-    #     major_df = major_df.append(df)
+    # Create empty list to fill during iteration
+    major_df = []
 
+    # Iterate through images, detecting panicles on images of individual plants
     for img in img_list[:1]:
         plot_number = os.path.basename(img).split('_')[0].zfill(4)
         temp_df = clustering_csv[clustering_csv['plot']==plot_number]
         temp_df = temp_df[temp_df['plant_name']!='double']
-        
-        for i, row in temp_df.iterrows():
 
-            min_x, min_y, max_x, max_y = row['min_x'], row['min_y'], row['max_x'], row['max_y']
+        # Create a pool of workers
+        with mp.Pool() as pool:
+            # Use a partial function to fix the first argument of process_row (since map only allows for one argument)
+            func = partial(process_row, img=img, clustering_csv=clustering_csv)
 
-                new_img = tif_img[min_y:max_y, min_x:max_x]
-                new_img = np.array(new_img)
-                copy = new_img.copy()
-                
-    #     temp_df = process_image(img=img)
-    #     major_df.append(temp_df)
+            # Process each row in parallel
+            results = pool.map(func, [row for _, row in temp_df.iterrows()])
 
-    # out_path = os.path.join(args.outdir, f'{args.date}_detection.csv')
-    # # major_df = pd.concat(major_df)
-    # major_df.to_csv(out_path)
+        # Save results to the list of dataframes
+        major_df.extend(results)
 
-    # print(f'Done, see outputs in ./{args.outdir}.')
+    # Define output filename
+    out_path = os.path.join(args.outdir, f'{args.date}_detection.csv')
+
+    # Concatenate items into a dataframe
+    major_df = pd.concat(major_df)
+
+    # Save output to file
+    major_df.to_csv(out_path)
+    print(f'Done, see outputs in ./{args.outdir}.')
+
 # --------------------------------------------------
 if __name__ == '__main__':
     main()
